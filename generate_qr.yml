@@ -1,0 +1,51 @@
+name: Generate QR Code
+
+on:
+  workflow_dispatch:
+    inputs:
+      data:
+        description: 'Texto o URL para el código QR'
+        required: true
+        default: 'https://github.com'
+      filename:
+        description: 'Nombre del archivo QR (sin extensión)'
+        required: true
+        default: 'qrcode'
+
+jobs:
+  generate_qr:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install qrcode[pil]
+
+      - name: Generate QR Code
+        run: |
+          python -c "
+          import qrcode
+          from PIL import Image
+          data = '${{ inputs.data }}'
+          file_name = '${{ inputs.filename }}.png'
+          qr = qrcode.QRCode(version=1, error_correction=qrcode.constants.ERROR_CORRECT_L, box_size=10, border=4)
+          qr.add_data(data)
+          qr.make(fit=True)
+          img = qr.make_image(fill_color='black', back_color='white')
+          img.save(file_name)
+          print(f'Generated QR Code: {file_name}')
+          "
+
+      - name: Upload QR Code as artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: qrcode
+          path: '*.png'
